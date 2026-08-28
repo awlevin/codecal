@@ -16,6 +16,7 @@
     --hour: 52px;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body {
     margin: 0; height: 100%;
     background: var(--bg); color: var(--text);
@@ -121,6 +122,13 @@
     border-left-style: dashed;
   }
   .sources { gap: 12px; padding-left: 4px; border-left: 1px solid var(--line); }
+  .block.muted { opacity: .32; border-style: dashed; }
+  .panel-btn {
+    display: block; width: 100%; margin-top: 14px; padding: 8px;
+    background: #1d1d24; color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; font: inherit; cursor: pointer;
+  }
+  .panel-btn:hover { background: #26262e; border-color: #3a3a44; }
   .block.tiny .s { display: none; }
 
   aside {
@@ -159,6 +167,9 @@
   </div>
   <label class="switch" title="Include Task/subagent transcripts in a session's runtime">
     <input type="checkbox" id="subs" checked /> Subagents
+  </label>
+  <label class="switch" id="showHiddenWrap" title="Show sessions you have hidden" hidden>
+    <input type="checkbox" id="showHidden" /> <span id="showHiddenLabel">Hidden</span>
   </label>
   <div class="control sources">
     <label class="switch" title="Claude Code transcripts"><input type="checkbox" id="srcClaude" checked /> <span id="srcClaudeLabel">Claude</span></label>
@@ -211,6 +222,8 @@ const state = {
   gapMin: store.get("gap", 15),
   includeSubs: store.get("subs", true),
   sources: store.get("sources", { claude: true, codex: true }),
+  hiddenSessions: new Set(store.get("hiddenSessions", [])),
+  showHidden: false,
   hidden: new Set(store.get("hidden", [])),
   selected: null,
   blocks: [],
@@ -271,11 +284,43 @@ async function load(force) {
   render();
 }
 
-function visibleSessions() {
-  return state.sessions.filter((s) => state.sources[s.source] !== false && !state.hidden.has(s.project));
+const sessionKey = (session) => session.source + ":" + session.id;
+
+function isHidden(session) {
+  return state.hiddenSessions.has(sessionKey(session));
 }
 
-/** Assigns overlapping blocks to side-by-side lanes, Google-Calendar style. */
+function visibleSessions() {
+  return state.sessions.filter(
+    (s) =>
+      state.sources[s.source] !== false &&
+      !state.hidden.has(s.project) &&
+      (state.showHidden || !isHidden(s)),
+  );
+}
+
+function setSessionHidden(session, hidden) {
+  const key = sessionKey(session);
+  if (hidden) state.hiddenSessions.add(key);
+  else state.hiddenSessions.delete(key);
+  store.set("hiddenSessions", [...state.hiddenSessions]);
+  syncHiddenControl();
+  render();
+}
+
+function syncHiddenControl() {
+  const count = state.hiddenSessions.size;
+  document.getElementById("showHiddenWrap").hidden = count === 0;
+  document.getElementById("showHiddenLabel").textContent = "Hidden " + count;
+  if (count === 0 && state.showHidden) {
+    state.showHidden = false;
+    document.getElementById("showHidden").checked = false;
+  }
+}
+
+const overlaps = (a, b) => a.top < b.top + b.height - 0.5 && b.top < a.top + a.height - 0.5;
+
+/** Lanes blocks side by side, then widens each one over the free lanes to its right. */
 function layout(dayBlocks) {
   dayBlocks.sort((a, b) => a.top - b.top || b.height - a.height);
   let cluster = [];
@@ -284,12 +329,18 @@ function layout(dayBlocks) {
     if (!cluster.length) return;
     const lanes = [];
     for (const b of cluster) {
-      let lane = lanes.findIndex((end) => b.top >= end - 0.5);
-      if (lane === -1) { lane = lanes.length; lanes.push(0); }
-      lanes[lane] = b.top + b.height;
+      let lane = lanes.findIndex((blocks) => !blocks.some((o) => overlaps(o, b)));
+      if (lane === -1) { lane = lanes.length; lanes.push([]); }
+      lanes[lane].push(b);
       b.lane = lane;
     }
-    for (const b of cluster) b.lanes = lanes.length;
+    for (const b of cluster) {
+      b.lanes = lanes.length;
+      let span = 1;
+      // A block keeps growing right until some lane holds a block beside it.
+      while (b.lane + span < lanes.length && !lanes[b.lane + span].some((o) => overlaps(o, b))) span++;
+      b.span = span;
+    }
     cluster = [];
     clusterEnd = -1;
   };
@@ -344,7 +395,7 @@ function render() {
         dayIntervals[i].push([s, e]);
         const top = ((s - dayStart) / 3600000) * HOUR_PX;
         const height = Math.max(MIN_BLOCK_PX, ((e - s) / 3600000) * HOUR_PX);
-        perDay[i].push({ session, start, end, s, e, top, height, lane: 0, lanes: 1 });
+        perDay[i].push({ session, start, end, s, e, top, height, lane: 0, lanes: 1, span: 1 });
       }
     }
   }
@@ -390,13 +441,14 @@ function render() {
         : "";
     const blocks = perDay[i].map((b) => {
       const c = colorFor(b.session.project);
-      const width = 100 / b.lanes;
-      const left = b.lane * width;
+      const unit = 100 / b.lanes;
+      const width = unit * b.span;
+      const left = b.lane * unit;
       const dur = b.end - b.start;
       const tiny = b.height < 26;
       const id = b.session.source + ":" + b.session.id + ":" + b.start;
       const selected = state.selected === id ? " selected" : "";
-      return `<div class="block ${b.session.source}${tiny ? " tiny" : ""}${selected}" data-id="${id}"
+      return `<div class="block ${b.session.source}${tiny ? " tiny" : ""}${selected}${isHidden(b.session) ? " muted" : ""}" data-id="${id}"
           style="top:${b.top}px;height:${b.height - 1}px;left:calc(${left}% + 2px);width:calc(${width}% - 5px);
                  background-color:${c.bg};border-color:rgba(255,255,255,.08);border-left-color:${c.border};color:${c.text}"
           title="${escapeHtml(b.session.title)}&#10;${b.session.project} · ${b.session.source === "codex" ? "Codex" : "Claude Code"}&#10;${fmtClock(b.start)} – ${fmtClock(b.end)} (${fmtDur(dur)})">
@@ -470,11 +522,17 @@ function showDetail(block) {
     <code>cd ${escapeHtml(s.cwd ?? "~")} &amp;&amp; ${s.source === "codex" ? "codex resume " + s.id : "claude --resume " + s.id}</code>
     <div class="sub" style="margin-top:10px">Transcript</div>
     <code>${escapeHtml(s.file)}</code>
+    <button class="panel-btn" id="toggleHide">${isHidden(s) ? "Unhide this session" : "Hide this session"}</button>
     <div class="sub" style="margin-top:14px">Blocks in this session</div>
     <div class="segments">
       ${all.map(([a, b]) => `<div><span>${new Date(a).toLocaleDateString([], { month: "short", day: "numeric" })} ${fmtClock(a)}</span><span>${fmtDur(b - a)}</span></div>`).join("")}
     </div>`;
   document.getElementById("closeDetail").onclick = hideDetail;
+  document.getElementById("toggleHide").onclick = () => {
+    const nowHidden = !isHidden(s);
+    setSessionHidden(s, nowHidden);
+    if (nowHidden && !state.showHidden) hideDetail();
+  };
 }
 
 function hideDetail() {
@@ -549,6 +607,13 @@ gap.oninput = () => {
 const subs = document.getElementById("subs");
 subs.checked = state.includeSubs;
 subs.onchange = () => { state.includeSubs = subs.checked; store.set("subs", state.includeSubs); render(); };
+
+const showHidden = document.getElementById("showHidden");
+showHidden.onchange = () => {
+  state.showHidden = showHidden.checked;
+  render();
+};
+syncHiddenControl();
 
 for (const [key, id] of [["claude", "srcClaude"], ["codex", "srcCodex"]]) {
   const box = document.getElementById(id);
