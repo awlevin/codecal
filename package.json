@@ -1,0 +1,31 @@
+{
+  "name": "claude-calendar",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node bin/claude-calendar.mjs"
+  },
+  "description": "A weekly calendar view of your local Claude Code sessions.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/awlevin/claude-calendar.git"
+  },
+  "keywords": [
+    "claude-code",
+    "calendar",
+    "timetracking"
+  ],
+  "type": "module",
+  "bin": {
+    "claude-calendar": "bin/claude-calendar.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin",
+    "public",
+    "README.md",
+    "LICENSE"
+  ]
+}

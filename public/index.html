@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Claude Sessions</title>
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --panel: #16161a;
+    --line: #26262c;
+    --line-soft: #1d1d22;
+    --text: #e7e7ea;
+    --muted: #8b8b95;
+    --accent: #7aa2f7;
+    --hour: 52px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font: 13px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", Segoe UI, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 16px; border-bottom: 1px solid var(--line);
+    flex: none;
+  }
+  .btn {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 7px 14px; font: inherit; cursor: pointer;
+  }
+  .btn:hover { background: #202027; }
+  .icon-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: none; background: transparent; color: var(--text);
+    font-size: 16px; cursor: pointer; line-height: 1;
+  }
+  .icon-btn:hover { background: #202027; }
+  h1 { font-size: 20px; font-weight: 500; margin: 0; letter-spacing: -0.2px; }
+  .range { color: var(--muted); }
+  .spacer { flex: 1; }
+
+  .control { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+  .control input[type="range"] { width: 150px; accent-color: var(--accent); }
+  .pill {
+    color: var(--text); background: #1d1d24; border: 1px solid var(--line);
+    border-radius: 999px; padding: 3px 9px; font-variant-numeric: tabular-nums; min-width: 62px; text-align: center;
+  }
+  .switch { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+  .switch input { accent-color: var(--accent); }
+
+  .dropdown { position: relative; }
+  .menu {
+    position: absolute; right: 0; top: 36px; z-index: 40;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px; min-width: 260px; max-height: 60vh; overflow: auto;
+    box-shadow: 0 16px 40px rgba(0,0,0,.55);
+  }
+  .menu[hidden] { display: none; }
+  .menu-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 6px; cursor: pointer; }
+  .menu-row:hover { background: #202027; }
+  .menu-row .swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .menu-row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .menu-row .count { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .menu-actions { display: flex; gap: 8px; padding: 4px 6px 8px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+  .link { background: none; border: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0; }
+
+  .stats { display: flex; gap: 18px; padding: 8px 16px; border-bottom: 1px solid var(--line); color: var(--muted); flex: none; }
+  .stats b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  main { flex: 1; display: flex; min-height: 0; }
+  .calendar { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  .headrow {
+    display: grid; grid-template-columns: 62px repeat(7, minmax(0, 1fr));
+    border-bottom: 1px solid var(--line); flex: none;
+  }
+  .tz { color: var(--muted); font-size: 10px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; }
+  .dayhead { padding: 8px 6px 10px; text-align: center; border-left: 1px solid var(--line-soft); }
+  .dayhead .dow { color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .dayhead .num {
+    font-size: 24px; font-weight: 400; margin: 2px auto 3px;
+    width: 38px; height: 38px; line-height: 38px; border-radius: 50%;
+  }
+  .dayhead.today .num { background: var(--accent); color: #0d0d0f; font-weight: 600; }
+  .dayhead .tot { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; min-height: 14px; }
+
+  .scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
+  .grid { display: grid; grid-template-columns: 62px repeat(7, minmax(0, 1fr)); position: relative; }
+  .gutter { position: relative; }
+  .gutter .lbl {
+    position: absolute; right: 8px; transform: translateY(-50%);
+    color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums;
+  }
+  .daycol { position: relative; border-left: 1px solid var(--line-soft); }
+  .hline { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line-soft); }
+  .nowline { position: absolute; left: 0; right: 0; height: 2px; background: #f2504b; z-index: 20; pointer-events: none; }
+  .nowline::before {
+    content: ""; position: absolute; left: -5px; top: -4px;
+    width: 10px; height: 10px; border-radius: 50%; background: #f2504b;
+  }
+
+  .block {
+    position: absolute; border-radius: 6px; padding: 3px 6px;
+    overflow: hidden; cursor: pointer; z-index: 10;
+    border: 1px solid rgba(255,255,255,.09); border-left-width: 3px;
+    font-size: 11px; line-height: 1.25;
+  }
+  .block:hover { filter: brightness(1.25); z-index: 25; }
+  .block.selected { outline: 2px solid var(--text); outline-offset: -1px; z-index: 26; }
+  .block .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .block .s { opacity: .75; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .block.tiny { padding: 0 5px; font-size: 10px; }
+  .block.tiny .s { display: none; }
+
+  aside {
+    width: 340px; flex: none; border-left: 1px solid var(--line);
+    background: var(--panel); overflow: auto; padding: 16px;
+  }
+  aside[hidden] { display: none; }
+  aside h2 { font-size: 15px; margin: 0 0 4px; font-weight: 600; }
+  aside .sub { color: var(--muted); margin-bottom: 14px; }
+  .kv { display: grid; grid-template-columns: 96px 1fr; gap: 6px 10px; margin-bottom: 14px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; word-break: break-word; font-variant-numeric: tabular-nums; }
+  .close { float: right; }
+  code {
+    display: block; background: #0d0d0f; border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 9px; font-size: 11px; word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .segments { max-height: 220px; overflow: auto; }
+  .segments div { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid var(--line-soft); font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); padding: 40px; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <button class="btn" id="today">Today</button>
+  <button class="icon-btn" id="prev" title="Previous week (←)">‹</button>
+  <button class="icon-btn" id="next" title="Next week (→)">›</button>
+  <h1 id="title">—</h1>
+  <span class="range" id="range"></span>
+  <span class="spacer"></span>
+  <div class="control" title="Pauses shorter than this stay inside one block">
+    <span>Idle gap</span>
+    <input type="range" id="gap" min="1" max="120" step="1" value="15" />
+    <span class="pill" id="gapVal">15 min</span>
+  </div>
+  <label class="switch" title="Include Task/subagent transcripts in a session's runtime">
+    <input type="checkbox" id="subs" checked /> Subagents
+  </label>
+  <div class="dropdown">
+    <button class="btn" id="projBtn">Projects</button>
+    <div class="menu" id="projMenu" hidden></div>
+  </div>
+</header>
+
+<div class="stats">
+  <span title="Wall clock: overlapping sessions counted once">Wall clock <b id="stTotal">0h</b></span>
+  <span title="Sum of every session block, so parallel sessions add up">Session time <b id="stAgent">0h</b></span>
+  <span>Sessions <b id="stSessions">0</b></span>
+  <span>Blocks <b id="stBlocks">0</b></span>
+  <span>Longest <b id="stLongest">—</b></span>
+  <span>Busiest <b id="stBusiest">—</b></span>
+  <span class="spacer"></span>
+  <span id="stScan"></span>
+</div>
+
+<main>
+  <div class="calendar">
+    <div class="headrow" id="headrow"></div>
+    <div class="scroll" id="scroll">
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+  <aside id="detail" hidden></aside>
+</main>
+
+<script type="module">
+const HOUR_PX = 52;
+const DAY_MS = 86400000;
+const MIN_BLOCK_PX = 13;
+
+const store = {
+  get(key, fallback) {
+    try { const v = localStorage.getItem("cc-cal:" + key); return v === null ? fallback : JSON.parse(v); }
+    catch { return fallback; }
+  },
+  set(key, value) { try { localStorage.setItem("cc-cal:" + key, JSON.stringify(value)); } catch {} },
+};
+
+const state = {
+  sessions: [],
+  scannedAt: 0,
+  weekStart: startOfWeek(new Date()),
+  gapMin: store.get("gap", 15),
+  includeSubs: store.get("subs", true),
+  hidden: new Set(store.get("hidden", [])),
+  selected: null,
+  blocks: [],
+};
+
+function startOfWeek(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+function fmtDur(ms) {
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return mins + "m";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? h + "h " + m + "m" : h + "h";
+}
+function fmtClock(ms) {
+  return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+function hashHue(text) {
+  let h = 0;
+  for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 360;
+  return h;
+}
+function colorFor(project) {
+  const hue = hashHue(project);
+  return {
+    bg: `hsl(${hue} 42% 26% / .92)`,
+    border: `hsl(${hue} 62% 62%)`,
+    text: `hsl(${hue} 55% 92%)`,
+    swatch: `hsl(${hue} 52% 52%)`,
+  };
+}
+
+/** Fuses a session's intervals into blocks separated by at least `gapMs` of silence. */
+function blocksFor(session, gapMs, includeSubs) {
+  const src = includeSubs && session.sub.length
+    ? [...session.main, ...session.sub].sort((a, b) => a[0] - b[0])
+    : session.main;
+  const out = [];
+  for (const [s, e] of src) {
+    const last = out[out.length - 1];
+    if (last && s - last[1] <= gapMs) last[1] = Math.max(last[1], e);
+    else out.push([s, e]);
+  }
+  return out;
+}
+
+async function load(force) {
+  const res = await fetch("/api/sessions" + (force ? "?refresh=1" : ""));
+  const data = await res.json();
+  if (data.scannedAt === state.scannedAt && !force) return;
+  state.scannedAt = data.scannedAt;
+  state.sessions = data.sessions;
+  renderProjectMenu();
+  render();
+}
+
+function visibleSessions() {
+  return state.sessions.filter((s) => !state.hidden.has(s.project));
+}
+
+/** Assigns overlapping blocks to side-by-side lanes, Google-Calendar style. */
+function layout(dayBlocks) {
+  dayBlocks.sort((a, b) => a.top - b.top || b.height - a.height);
+  let cluster = [];
+  let clusterEnd = -1;
+  const flush = () => {
+    if (!cluster.length) return;
+    const lanes = [];
+    for (const b of cluster) {
+      let lane = lanes.findIndex((end) => b.top >= end - 0.5);
+      if (lane === -1) { lane = lanes.length; lanes.push(0); }
+      lanes[lane] = b.top + b.height;
+      b.lane = lane;
+    }
+    for (const b of cluster) b.lanes = lanes.length;
+    cluster = [];
+    clusterEnd = -1;
+  };
+  for (const b of dayBlocks) {
+    if (cluster.length && b.top >= clusterEnd - 0.5) flush();
+    cluster.push(b);
+    clusterEnd = Math.max(clusterEnd, b.top + b.height);
+  }
+  flush();
+  return dayBlocks;
+}
+
+function render() {
+  const weekStart = state.weekStart.getTime();
+  const days = [...Array(7)].map((_, i) => {
+    const d = new Date(state.weekStart);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+  const weekEnd = days[6].getTime() + DAY_MS;
+  const gapMs = state.gapMin * 60000;
+
+  // Header
+  const now = Date.now();
+  const todayKey = new Date().toDateString();
+  document.getElementById("title").textContent =
+    days[0].getMonth() === days[6].getMonth()
+      ? days[0].toLocaleDateString([], { month: "long", year: "numeric" })
+      : days[0].toLocaleDateString([], { month: "short" }) + " – " + days[6].toLocaleDateString([], { month: "short", year: "numeric" });
+  document.getElementById("range").textContent =
+    days[0].toLocaleDateString([], { month: "numeric", day: "numeric" }) + " – " +
+    days[6].toLocaleDateString([], { month: "numeric", day: "numeric" });
+
+  // Blocks for this week, split at midnight.
+  const perDay = days.map(() => []);
+  const dayIntervals = days.map(() => []);
+  const weekBlocks = [];
+  let agentMs = 0;
+  for (const session of visibleSessions()) {
+    if (session.end < weekStart || session.start > weekEnd) continue;
+    for (const [start, end] of blocksFor(session, gapMs, state.includeSubs)) {
+      if (end < weekStart || start >= weekEnd) continue;
+      weekBlocks.push({ session, start, end });
+      agentMs += end - start;
+      for (let i = 0; i < 7; i++) {
+        const dayStart = days[i].getTime();
+        const dayEnd = dayStart + DAY_MS;
+        const s = Math.max(start, dayStart);
+        const e = Math.min(end, dayEnd);
+        const isPoint = start === end;
+        if (e < s || (e === s && !isPoint)) continue;
+        dayIntervals[i].push([s, e]);
+        const top = ((s - dayStart) / 3600000) * HOUR_PX;
+        const height = Math.max(MIN_BLOCK_PX, ((e - s) / 3600000) * HOUR_PX);
+        perDay[i].push({ session, start, end, s, e, top, height, lane: 0, lanes: 1 });
+      }
+    }
+  }
+  perDay.forEach(layout);
+  state.blocks = weekBlocks;
+
+  // Wall-clock time: parallel sessions in the same minute count once.
+  const dayTotals = dayIntervals.map((intervals) => {
+    intervals.sort((a, b) => a[0] - b[0]);
+    let total = 0;
+    let cur = null;
+    for (const [s, e] of intervals) {
+      if (cur && s <= cur[1]) cur[1] = Math.max(cur[1], e);
+      else { if (cur) total += cur[1] - cur[0]; cur = [s, e]; }
+    }
+    if (cur) total += cur[1] - cur[0];
+    return total;
+  });
+
+  const headrow = document.getElementById("headrow");
+  headrow.innerHTML =
+    `<div class="tz">${new Date().toLocaleTimeString([], { timeZoneName: "short" }).split(" ").pop()}</div>` +
+    days.map((d, i) => `
+      <div class="dayhead ${d.toDateString() === todayKey ? "today" : ""}">
+        <div class="dow">${d.toLocaleDateString([], { weekday: "short" })}</div>
+        <div class="num">${d.getDate()}</div>
+        <div class="tot">${dayTotals[i] ? fmtDur(dayTotals[i]) : ""}</div>
+      </div>`).join("");
+
+  const grid = document.getElementById("grid");
+  const gutter = ['<div class="gutter" style="height:' + HOUR_PX * 24 + 'px">'];
+  for (let h = 1; h < 24; h++) {
+    const label = h === 12 ? "12 PM" : h > 12 ? h - 12 + " PM" : h + " AM";
+    gutter.push(`<div class="lbl" style="top:${h * HOUR_PX}px">${label}</div>`);
+  }
+  gutter.push("</div>");
+
+  const cols = days.map((d, i) => {
+    const lines = [...Array(24)].map((_, h) => `<div class="hline" style="top:${h * HOUR_PX}px"></div>`).join("");
+    const nowLine =
+      d.toDateString() === todayKey
+        ? `<div class="nowline" style="top:${((now - d.getTime()) / 3600000) * HOUR_PX}px"></div>`
+        : "";
+    const blocks = perDay[i].map((b) => {
+      const c = colorFor(b.session.project);
+      const width = 100 / b.lanes;
+      const left = b.lane * width;
+      const dur = b.end - b.start;
+      const tiny = b.height < 26;
+      const id = b.session.id + ":" + b.start;
+      const selected = state.selected === id ? " selected" : "";
+      return `<div class="block${tiny ? " tiny" : ""}${selected}" data-id="${id}"
+          style="top:${b.top}px;height:${b.height - 1}px;left:calc(${left}% + 2px);width:calc(${width}% - 5px);
+                 background:${c.bg};border-color:rgba(255,255,255,.08);border-left-color:${c.border};color:${c.text}"
+          title="${escapeHtml(b.session.title)}&#10;${b.session.project}&#10;${fmtClock(b.start)} – ${fmtClock(b.end)} (${fmtDur(dur)})">
+          <div class="t">${escapeHtml(b.session.title)}</div>
+          <div class="s">${fmtClock(b.start)} · ${fmtDur(dur)}</div>
+        </div>`;
+    }).join("");
+    return `<div class="daycol" style="height:${HOUR_PX * 24}px">${lines}${nowLine}${blocks}</div>`;
+  });
+
+  grid.innerHTML = gutter.join("") + cols.join("");
+
+  // Stats
+  const total = dayTotals.reduce((a, b) => a + b, 0);
+  const sessionIds = new Set(weekBlocks.map((b) => b.session.id));
+  const longest = weekBlocks.reduce((best, b) => (b.end - b.start > (best ? best.end - best.start : -1) ? b : best), null);
+  const busiestIdx = dayTotals.indexOf(Math.max(...dayTotals));
+  document.getElementById("stTotal").textContent = total ? fmtDur(total) : "0h";
+  document.getElementById("stAgent").textContent = agentMs ? fmtDur(agentMs) : "0h";
+  document.getElementById("stSessions").textContent = sessionIds.size;
+  document.getElementById("stBlocks").textContent = weekBlocks.length;
+  document.getElementById("stLongest").textContent = longest ? fmtDur(longest.end - longest.start) : "—";
+  document.getElementById("stBusiest").textContent =
+    total ? days[busiestIdx].toLocaleDateString([], { weekday: "short" }) + " " + fmtDur(dayTotals[busiestIdx]) : "—";
+  document.getElementById("stScan").textContent = "indexed " + fmtClock(state.scannedAt);
+
+  if (state.selected) {
+    const still = weekBlocks.find((b) => b.session.id + ":" + b.start === state.selected);
+    if (still) showDetail(still);
+    else hideDetail();
+  }
+}
+
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function showDetail(block) {
+  const s = block.session;
+  const gapMs = state.gapMin * 60000;
+  const all = blocksFor(s, gapMs, state.includeSubs);
+  const active = all.reduce((sum, [a, b]) => sum + (b - a), 0);
+  const models = Object.entries(s.models).sort((a, b) => b[1] - a[1]).map(([m, n]) => `${m} (${n})`).join("<br>") || "—";
+  const tok = s.tokens;
+  const el = document.getElementById("detail");
+  el.hidden = false;
+  el.innerHTML = `
+    <button class="icon-btn close" id="closeDetail">×</button>
+    <h2>${escapeHtml(s.title)}</h2>
+    <div class="sub">${escapeHtml(s.project)}${s.branch ? " · " + escapeHtml(s.branch) : ""}</div>
+    <dl class="kv">
+      <dt>This block</dt><dd>${fmtClock(block.start)} – ${fmtClock(block.end)} · ${fmtDur(block.end - block.start)}</dd>
+      <dt>Session span</dt><dd>${new Date(s.start).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} → ${new Date(s.end).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</dd>
+      <dt>Active total</dt><dd>${fmtDur(active)} over ${all.length} block${all.length === 1 ? "" : "s"}</dd>
+      <dt>Prompts</dt><dd>${s.prompts}</dd>
+      <dt>Assistant turns</dt><dd>${s.assistantTurns}</dd>
+      <dt>Subagent runs</dt><dd>${s.sub.length ? s.sub.length + " intervals" : "none"}</dd>
+      <dt>Models</dt><dd>${models}</dd>
+      <dt>Tokens</dt><dd>in ${tok.input.toLocaleString()} · out ${tok.output.toLocaleString()}<br>cache r ${tok.cacheRead.toLocaleString()} · w ${tok.cacheWrite.toLocaleString()}</dd>
+      ${s.costUSD !== null ? `<dt>Recorded cost</dt><dd>$${s.costUSD.toFixed(2)}</dd>` : ""}
+    </dl>
+    <div class="sub">Resume</div>
+    <code>cd ${escapeHtml(s.cwd ?? "~")} &amp;&amp; claude --resume ${s.id}</code>
+    <div class="sub" style="margin-top:14px">Blocks in this session</div>
+    <div class="segments">
+      ${all.map(([a, b]) => `<div><span>${new Date(a).toLocaleDateString([], { month: "short", day: "numeric" })} ${fmtClock(a)}</span><span>${fmtDur(b - a)}</span></div>`).join("")}
+    </div>`;
+  document.getElementById("closeDetail").onclick = hideDetail;
+}
+
+function hideDetail() {
+  state.selected = null;
+  document.getElementById("detail").hidden = true;
+  document.querySelectorAll(".block.selected").forEach((el) => el.classList.remove("selected"));
+}
+
+function renderProjectMenu() {
+  const counts = new Map();
+  for (const s of state.sessions) counts.set(s.project, (counts.get(s.project) ?? 0) + 1);
+  const rows = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  const menu = document.getElementById("projMenu");
+  menu.innerHTML =
+    `<div class="menu-actions"><button class="link" id="projAll">Select all</button><button class="link" id="projNone">Clear all</button></div>` +
+    rows.map(([project, count]) => {
+      return `<label class="menu-row">
+        <input type="checkbox" data-project="${escapeHtml(project)}" ${state.hidden.has(project) ? "" : "checked"} />
+        <span class="swatch" style="background:${colorFor(project).swatch}"></span>
+        <span class="name">${escapeHtml(project)}</span>
+        <span class="count">${count}</span>
+      </label>`;
+    }).join("");
+  menu.querySelectorAll("input[data-project]").forEach((input) => {
+    input.onchange = () => {
+      const project = input.dataset.project;
+      if (input.checked) state.hidden.delete(project);
+      else state.hidden.add(project);
+      store.set("hidden", [...state.hidden]);
+      render();
+    };
+  });
+  document.getElementById("projAll").onclick = () => { state.hidden.clear(); store.set("hidden", []); renderProjectMenu(); render(); };
+  document.getElementById("projNone").onclick = () => {
+    state.hidden = new Set(counts.keys());
+    store.set("hidden", [...state.hidden]);
+    renderProjectMenu(); render();
+  };
+  document.getElementById("projBtn").textContent = state.hidden.size ? `Projects (${counts.size - state.hidden.size}/${counts.size})` : "Projects";
+}
+
+function shiftWeek(delta) {
+  state.weekStart = new Date(state.weekStart.getTime());
+  state.weekStart.setDate(state.weekStart.getDate() + delta * 7);
+  render();
+}
+
+document.getElementById("prev").onclick = () => shiftWeek(-1);
+document.getElementById("next").onclick = () => shiftWeek(1);
+document.getElementById("today").onclick = () => { state.weekStart = startOfWeek(new Date()); render(); scrollToNow(); };
+document.addEventListener("keydown", (e) => {
+  if (e.target.matches("input")) return;
+  if (e.key === "ArrowLeft") shiftWeek(-1);
+  if (e.key === "ArrowRight") shiftWeek(1);
+  if (e.key.toLowerCase() === "t") { state.weekStart = startOfWeek(new Date()); render(); scrollToNow(); }
+  if (e.key === "Escape") hideDetail();
+});
+
+const gap = document.getElementById("gap");
+gap.value = state.gapMin;
+document.getElementById("gapVal").textContent = state.gapMin + " min";
+gap.oninput = () => {
+  state.gapMin = Number(gap.value);
+  document.getElementById("gapVal").textContent = state.gapMin + " min";
+  store.set("gap", state.gapMin);
+  render();
+};
+
+const subs = document.getElementById("subs");
+subs.checked = state.includeSubs;
+subs.onchange = () => { state.includeSubs = subs.checked; store.set("subs", state.includeSubs); render(); };
+
+document.getElementById("projBtn").onclick = (e) => {
+  e.stopPropagation();
+  const menu = document.getElementById("projMenu");
+  menu.hidden = !menu.hidden;
+};
+document.addEventListener("click", (e) => {
+  const menu = document.getElementById("projMenu");
+  if (!menu.hidden && !menu.contains(e.target)) menu.hidden = true;
+});
+
+document.getElementById("grid").addEventListener("click", (e) => {
+  const el = e.target.closest(".block");
+  if (!el) return;
+  state.selected = el.dataset.id;
+  const block = state.blocks.find((b) => b.session.id + ":" + b.start === state.selected);
+  document.querySelectorAll(".block.selected").forEach((n) => n.classList.remove("selected"));
+  el.classList.add("selected");
+  if (block) showDetail(block);
+});
+
+function scrollToNow() {
+  const scroll = document.getElementById("scroll");
+  const hour = new Date().getHours();
+  scroll.scrollTop = Math.max(0, (hour - 2) * HOUR_PX);
+}
+
+await load(true);
+scrollToNow();
+setInterval(() => load(false), 30000);
+setInterval(render, 60000);
+</script>
+</body>
+</html>
