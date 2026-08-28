@@ -21,24 +21,40 @@ const mulberry32 = (seed: number) => () => {
 };
 
 const SEEDS: Array<{ title: string; project: number; day: number; start: number; bursts: number }> = [
-  { title: "fix flaky auth test", project: 0, day: 0, start: 9.5, bursts: 5 },
-  { title: "port dashboard to v2", project: 1, day: 0, start: 13.2, bursts: 6 },
-  { title: "review PR #482", project: 0, day: 0, start: 16.4, bursts: 3 },
-  { title: "debug webhook retries", project: 2, day: 1, start: 9.9, bursts: 6 },
-  { title: "write the billing migration", project: 1, day: 1, start: 11.1, bursts: 5 },
-  { title: "profile the slow query", project: 3, day: 1, start: 15.0, bursts: 4 },
-  { title: "refactor the queue worker", project: 0, day: 2, start: 10.4, bursts: 7 },
-  { title: "chase a memory leak", project: 2, day: 2, start: 14.2, bursts: 5 },
-  { title: "rewrite onboarding copy", project: 4, day: 2, start: 17.1, bursts: 3 },
-  { title: "add retries to the importer", project: 1, day: 3, start: 9.2, bursts: 6 },
-  { title: "split the settings route", project: 3, day: 3, start: 11.8, bursts: 5 },
-  { title: "upgrade the build pipeline", project: 0, day: 3, start: 15.3, bursts: 6 },
-  { title: "trace the 500s in checkout", project: 2, day: 4, start: 9.6, bursts: 7 },
-  { title: "design the empty state", project: 4, day: 4, start: 13.0, bursts: 4 },
-  { title: "tune the cache headers", project: 1, day: 4, start: 16.2, bursts: 5 },
-  { title: "prep the release notes", project: 3, day: 5, start: 11.0, bursts: 4 },
-  { title: "clean up dead flags", project: 0, day: 5, start: 14.6, bursts: 5 },
-  { title: "sketch the weekly digest", project: 4, day: 6, start: 12.4, bursts: 4 },
+  { title: "flaky auth test", project: 0, day: 0, start: 9.6, bursts: 5 },
+  { title: "webhook retries", project: 2, day: 0, start: 9.9, bursts: 5 },
+  { title: "dashboard v2", project: 1, day: 0, start: 13.6, bursts: 5 },
+  { title: "index rebuild", project: 3, day: 0, start: 13.9, bursts: 5 },
+  { title: "review PR #482", project: 0, day: 0, start: 14.0, bursts: 4 },
+
+  { title: "billing migration", project: 1, day: 1, start: 9.4, bursts: 6 },
+  { title: "slow query", project: 3, day: 1, start: 9.7, bursts: 5 },
+  { title: "empty state", project: 4, day: 1, start: 13.4, bursts: 5 },
+  { title: "cache headers", project: 1, day: 1, start: 13.8, bursts: 4 },
+
+  { title: "queue worker", project: 0, day: 2, start: 10.1, bursts: 6 },
+  { title: "memory leak", project: 2, day: 2, start: 10.4, bursts: 5 },
+  { title: "onboarding copy", project: 4, day: 2, start: 10.8, bursts: 4 },
+  { title: "dead flags", project: 0, day: 2, start: 15.1, bursts: 5 },
+  { title: "snapshot tests", project: 1, day: 2, start: 15.4, bursts: 4 },
+
+  { title: "importer retries", project: 1, day: 3, start: 9.5, bursts: 6 },
+  { title: "settings route", project: 3, day: 3, start: 9.8, bursts: 5 },
+  { title: "build pipeline", project: 0, day: 3, start: 15.0, bursts: 5 },
+  { title: "release notes", project: 3, day: 3, start: 15.4, bursts: 4 },
+  { title: "api docs", project: 4, day: 3, start: 13.2, bursts: 5 },
+
+  { title: "checkout 500s", project: 2, day: 4, start: 9.7, bursts: 6 },
+  { title: "weekly digest", project: 4, day: 4, start: 10.0, bursts: 5 },
+  { title: "search ranking", project: 1, day: 4, start: 10.4, bursts: 4 },
+  { title: "seed script", project: 3, day: 4, start: 14.6, bursts: 5 },
+  { title: "flake quarantine", project: 0, day: 4, start: 15.0, bursts: 4 },
+  { title: "perf budget", project: 2, day: 4, start: 14.9, bursts: 4 },
+
+  { title: "docs pass", project: 4, day: 5, start: 11.2, bursts: 4 },
+  { title: "upgrade deps", project: 0, day: 5, start: 11.5, bursts: 4 },
+
+  { title: "inbox triage", project: 2, day: 6, start: 12.5, bursts: 4 },
 ];
 
 export const SESSIONS: DemoSession[] = SEEDS.map((seed, index) => {
@@ -93,3 +109,45 @@ export const activeMinutesAt = (gapMin: number) =>
       total + groupsAt(session.intervals, gapMin).reduce((sum, g) => sum + (g.end - g.start), 0),
     0,
   );
+
+/** Wall clock across the week: two sessions in the same minute count once. */
+export function wallClockAt(gapMin: number): number {
+  const spans: Array<[number, number]> = [];
+  for (const session of SESSIONS) {
+    for (const group of groupsAt(session.intervals, gapMin)) {
+      spans.push([session.day * 1440 + group.start, session.day * 1440 + group.end]);
+    }
+  }
+  spans.sort((a, b) => a[0] - b[0]);
+  let total = 0;
+  let current: [number, number] | null = null;
+  for (const span of spans) {
+    if (current && span[0] <= current[1]) {
+      current[1] = Math.max(current[1], span[1]);
+    } else {
+      if (current) {
+        total += current[1] - current[0];
+      }
+      current = [span[0], span[1]];
+    }
+  }
+  return current ? total + (current[1] - current[0]) : total;
+}
+
+/** The most sessions running at the same moment. */
+export function peakParallelAt(gapMin: number): number {
+  const edges: Array<[number, number]> = [];
+  for (const session of SESSIONS) {
+    for (const group of groupsAt(session.intervals, gapMin)) {
+      edges.push([session.day * 1440 + group.start, 1], [session.day * 1440 + group.end, -1]);
+    }
+  }
+  edges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  let running = 0;
+  let peak = 0;
+  for (const [, delta] of edges) {
+    running += delta;
+    peak = Math.max(peak, running);
+  }
+  return peak;
+}

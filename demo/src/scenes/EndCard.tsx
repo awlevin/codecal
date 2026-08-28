@@ -41,7 +41,7 @@ export const EndCard: React.FC = () => {
           opacity: footer,
         }}
       >
-        Claude Code and Codex, on one calendar. Reads your machine, uploads nothing.
+        Claude Code and Codex, on one calendar.
       </div>
     </AbsoluteFill>
   );

@@ -1,6 +1,6 @@
 import React from "react";
 import { interpolate } from "remotion";
-import { SESSIONS, blockCountAt, activeMinutesAt, groupsAt } from "../data";
+import { SESSIONS, blockCountAt, activeMinutesAt, groupsAt, wallClockAt, peakParallelAt } from "../data";
 import { projectColor, theme } from "../theme";
 import { Wordmark } from "./Wordmark";
 
@@ -98,6 +98,8 @@ export const Calendar: React.FC<{ gapMin: number; reveal: number }> = ({ gapMin,
 
   const blocks = blockCountAt(gapMin);
   const active = activeMinutesAt(gapMin);
+  const wall = wallClockAt(gapMin);
+  const peak = peakParallelAt(gapMin);
 
   return (
     <div
@@ -202,14 +204,23 @@ export const Calendar: React.FC<{ gapMin: number; reveal: number }> = ({ gapMin,
       >
         <span>
           Wall clock{" "}
+          <b style={{ color: theme.text, fontVariantNumeric: "tabular-nums" }}>{fmtHours(wall)}</b>
+        </span>
+        <span>
+          Session time{" "}
           <b style={{ color: theme.text, fontVariantNumeric: "tabular-nums" }}>{fmtHours(active)}</b>
         </span>
         <span>
-          Blocks{" "}
-          <b style={{ color: theme.text, fontVariantNumeric: "tabular-nums" }}>{blocks}</b>
+          Multiplier{" "}
+          <b style={{ color: theme.text, fontVariantNumeric: "tabular-nums" }}>
+            {(active / Math.max(1, wall)).toFixed(1)}×
+          </b>
         </span>
         <span>
-          Sessions <b style={{ color: theme.text }}>{SESSIONS.length}</b>
+          Peak parallel <b style={{ color: theme.text }}>{peak}×</b>
+        </span>
+        <span>
+          Blocks <b style={{ color: theme.text, fontVariantNumeric: "tabular-nums" }}>{blocks}</b>
         </span>
       </div>
 

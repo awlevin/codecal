@@ -184,6 +184,8 @@
 <div class="stats">
   <span title="Wall clock: overlapping sessions counted once">Wall clock <b id="stTotal">0h</b></span>
   <span title="Sum of every session block, so parallel sessions add up">Session time <b id="stAgent">0h</b></span>
+  <span title="Session time over wall clock: how much work you ran per hour you spent">Multiplier <b id="stMultiplier">—</b></span>
+  <span title="Most sessions running at the same moment this week">Peak parallel <b id="stPeak">—</b></span>
   <span>Sessions <b id="stSessions">0</b></span>
   <span>Blocks <b id="stBlocks">0</b></span>
   <span>Longest <b id="stLongest">—</b></span>
@@ -468,6 +470,8 @@ function render() {
   const busiestIdx = dayTotals.indexOf(Math.max(...dayTotals));
   document.getElementById("stTotal").textContent = total ? fmtDur(total) : "0h";
   document.getElementById("stAgent").textContent = agentMs ? fmtDur(agentMs) : "0h";
+  document.getElementById("stMultiplier").textContent = total ? (agentMs / total).toFixed(1) + "×" : "—";
+  document.getElementById("stPeak").textContent = total ? peakParallel(weekBlocks) + "×" : "—";
   document.getElementById("stSessions").textContent = sessionIds.size;
   document.getElementById("stBlocks").textContent = weekBlocks.length;
   document.getElementById("stLongest").textContent = longest ? fmtDur(longest.end - longest.start) : "—";
@@ -489,6 +493,31 @@ function render() {
   }
 }
 
+/** The most sessions that were running at the same moment. */
+function peakParallel(blocks) {
+  const edges = [];
+  for (const b of blocks) {
+    edges.push([b.start, 1], [b.end, -1]);
+  }
+  edges.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  let running = 0;
+  let peak = 0;
+  for (const [, delta] of edges) {
+    running += delta;
+    peak = Math.max(peak, running);
+  }
+  return peak;
+}
+
+/** Pauses between a session's own blocks: how long you took to come back. */
+function returnGaps(blocks) {
+  const gaps = [];
+  for (let i = 1; i < blocks.length; i++) {
+    gaps.push(blocks[i][0] - blocks[i - 1][1]);
+  }
+  return gaps.sort((a, b) => a - b);
+}
+
 function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -498,7 +527,13 @@ function showDetail(block) {
   const gapMs = state.gapMin * 60000;
   const all = blocksFor(s, gapMs, state.includeSubs);
   const active = all.reduce((sum, [a, b]) => sum + (b - a), 0);
-  const models = Object.entries(s.models).sort((a, b) => b[1] - a[1]).map(([m, n]) => `${m} (${n})`).join("<br>") || "—";
+  const gaps = returnGaps(all);
+  const models =
+    Object.entries(s.models)
+      .filter(([m]) => m !== "<synthetic>")
+      .sort((a, b) => b[1] - a[1])
+      .map(([m, n]) => `${escapeHtml(m)} (${n})`)
+      .join("<br>") || "—";
   const tok = s.tokens;
   const el = document.getElementById("detail");
   el.hidden = false;
@@ -511,6 +546,7 @@ function showDetail(block) {
       <dt>This block</dt><dd>${fmtClock(block.start)} – ${fmtClock(block.end)} · ${fmtDur(block.end - block.start)}</dd>
       <dt>Session span</dt><dd>${new Date(s.start).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} → ${new Date(s.end).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</dd>
       <dt>Active total</dt><dd>${fmtDur(active)} over ${all.length} block${all.length === 1 ? "" : "s"}</dd>
+      ${gaps.length ? `<dt>Time to return</dt><dd>${fmtDur(gaps[Math.floor(gaps.length / 2)])} median · ${fmtDur(gaps[gaps.length - 1])} longest</dd>` : ""}
       <dt>Prompts</dt><dd>${s.prompts}</dd>
       <dt>Assistant turns</dt><dd>${s.assistantTurns}</dd>
       <dt>Subagent runs</dt><dd>${s.sub.length ? s.sub.length + " intervals" : "none"}</dd>

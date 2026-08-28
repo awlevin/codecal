@@ -6,7 +6,7 @@ import { CalendarScene } from "./scenes/CalendarScene";
 import { EndCard } from "./scenes/EndCard";
 import { theme } from "./theme";
 
-export const DEMO_DURATION = 585;
+export const DEMO_DURATION = 591;
 
 export const Demo: React.FC = () => (
   <AbsoluteFill style={{ background: theme.bg }}>
@@ -22,10 +22,10 @@ export const Demo: React.FC = () => (
     <Sequence from={48} durationInFrames={146}>
       <Terminal />
     </Sequence>
-    <Sequence from={186} durationInFrames={300}>
+    <Sequence from={186} durationInFrames={306}>
       <CalendarScene />
     </Sequence>
-    <Sequence from={478} durationInFrames={107}>
+    <Sequence from={484} durationInFrames={107}>
       <EndCard />
     </Sequence>
   </AbsoluteFill>

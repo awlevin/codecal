@@ -6,6 +6,7 @@
 
 <p align="center">
   <b>Your coding agents, on a calendar.</b><br />
+  See how well you <i>really</i> use your agents.<br />
   Every Claude Code and Codex session you ran on this machine, drawn hour by hour.
 </p>
 
@@ -32,14 +33,22 @@ npx github:awlevin/codecal
 
 It serves <http://localhost:4317> and opens it. No install, no build step, no config file, no account, no dependencies. Node 18 or newer is the only requirement.
 
-## Why
+## See how well you really use your agents
 
-Claude Code and Codex already write a full transcript of every session to disk, in `~/.claude/projects/` and `~/.codex/sessions/`. The data to answer "when did I actually work today, and on what" is already on your machine. codecal draws it.
+You have a rough feeling about how you work with agents. Your transcripts have the receipts. codecal turns them into a scoreboard you did not have to keep.
+
+**How well do you parallelize?** Every week shows two totals. *Wall clock* counts overlapping sessions once, so it is time you spent. *Session time* sums every block, so it is work that got done. The **multiplier** between them is how much agent work you ran per hour of your own, and **peak parallel** is the most sessions you had running at the same moment. Three agents at once on Tuesday afternoon is a number, not a vibe.
+
+**How long do you leave sessions hanging?** Open any session and it tells you the median and the longest time you took to come back to it. That is the honest measure of context-switching: a session with a 4 minute median is one you drove, and one with a 3 hour median is one you abandoned and rediscovered.
+
+**Where does the time actually go?** Blocks are colored by repo and worktree, so a glance shows which project ate the week, and whether you finished things or left five worktrees half-open.
+
+**Claude Code or Codex?** Both are drawn on the same grid, with a toggle for either alone. The split is usually not what people guess.
+
+And the ordinary questions too:
 
 - When did I really start, and when did I really stop?
-- How much of yesterday was three agents running at once?
 - Which repo ate Tuesday?
-- Am I spending more time in Claude Code or in Codex?
 - What was that session on Thursday afternoon, and how do I resume it?
 
 Everything is read locally. Nothing is uploaded, and no transcript content leaves the machine.
@@ -69,8 +78,8 @@ Low values show individual turns. High values show "I had an agent open all even
 | **Week view** | Seven days by hour, with a live now-line and a red marker on today |
 | **A block per stretch of work** | Colored by repo and worktree, side by side when sessions overlap, widening into free space |
 | **Both agents** | Claude Code solid, Codex striped, header toggles to show either alone |
-| **Two totals** | Wall clock counts overlapping sessions once. Session time sums every block. On a day of parallel agents the second is far larger |
-| **Session detail** | Span, prompts, assistant turns, models, tokens, every block in the session, the transcript path, and a ready-to-paste resume command |
+| **A scoreboard** | Wall clock, session time, the multiplier between them, peak parallel agents, longest block, busiest day |
+| **Session detail** | Span, time to return (median and longest), prompts, assistant turns, models, tokens, every block in the session, the transcript path, and a ready-to-paste resume command |
 | **Hide the noise** | A session that hung on an unanswered prompt for three days can be hidden in one click, and brought back with a toggle |
 | **Live refresh** | The index rebuilds every 30 seconds, so a session you start while the page is open appears on its own |
 
