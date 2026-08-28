@@ -25,7 +25,7 @@
   <img src="assets/codecal-demo.gif" width="900" alt="codecal walking through a week of sessions: the idle gap slider, a runaway session, and the weekly score" />
 </p>
 
-<p align="center"><sub>GitHub cannot play video in a README, so the demo above is a GIF. <a href="assets/codecal-demo.mp4">Grab the mp4</a> for the full-resolution version.</sub></p>
+<p align="center"><sub><a href="assets/codecal-demo.mp4">Watch at full resolution</a></sub></p>
 
 ---
 
