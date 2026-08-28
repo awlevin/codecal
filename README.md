@@ -59,9 +59,9 @@ Everything is read locally. Nothing is uploaded, and no transcript content leave
   <img src="assets/idle-gap.gif" width="900" alt="Dragging the idle gap slider fuses and splits the blocks live" />
 </p>
 
-A session is a stream of events, not a solid block. Read a diff for ten minutes before replying and the transcript has a ten minute hole that was really one continuous stretch of work. Draw it literally and your week turns into confetti.
+You took five minutes to reply to an idle agent. The session never stopped, but the transcript has a five minute hole in it. Draw those holes literally and one hour of work becomes two twenty minute blocks with a gap, and your week turns into confetti.
 
-The **idle gap** slider sets how long a pause must be before one block breaks in two. Drag it and the calendar re-merges live.
+The **idle gap** slider is where you say how long a pause has to be before it counts as a break. Drag it and the calendar re-merges live.
 
 | Idle gap | Blocks | Wall clock |
 | --- | --- | --- |

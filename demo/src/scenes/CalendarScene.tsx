@@ -12,8 +12,8 @@ const HEADLINE = (
 );
 
 const CAPTIONS: Array<{ text: string; from: number; to: number }> = [
-  { text: "The idle gap decides how long a pause splits a block in two.", from: 92, to: 180 },
-  { text: "Same week, read at the resolution you want.", from: 196, to: 280 },
+  { text: "You took five minutes to reply. The session never stopped.", from: 92, to: 180 },
+  { text: "You set how long a pause has to be to count as a break.", from: 196, to: 280 },
 ];
 
 /** The drag: hold at 15, pull right to 60, then back down to 6. */
