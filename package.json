@@ -4,7 +4,7 @@
   "scripts": {
     "start": "node bin/claude-calendar.mjs"
   },
-  "description": "A weekly calendar view of your local Claude Code sessions.",
+  "description": "A weekly calendar view of your local Claude Code and Codex sessions.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -12,8 +12,10 @@
   },
   "keywords": [
     "claude-code",
+    "codex",
     "calendar",
-    "timetracking"
+    "timetracking",
+    "agents"
   ],
   "type": "module",
   "bin": {

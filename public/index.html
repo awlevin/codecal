@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Claude Sessions</title>
+<title>Session Calendar</title>
 <style>
   :root {
     --bg: #0d0d0f;
@@ -116,6 +116,11 @@
   .block .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .block .s { opacity: .75; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .block.tiny { padding: 0 5px; font-size: 10px; }
+  .block.codex {
+    background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.09) 0 3px, transparent 3px 7px);
+    border-left-style: dashed;
+  }
+  .sources { gap: 12px; padding-left: 4px; border-left: 1px solid var(--line); }
   .block.tiny .s { display: none; }
 
   aside {
@@ -155,6 +160,10 @@
   <label class="switch" title="Include Task/subagent transcripts in a session's runtime">
     <input type="checkbox" id="subs" checked /> Subagents
   </label>
+  <div class="control sources">
+    <label class="switch" title="Claude Code transcripts"><input type="checkbox" id="srcClaude" checked /> <span id="srcClaudeLabel">Claude</span></label>
+    <label class="switch" title="Codex rollouts (shown with stripes)"><input type="checkbox" id="srcCodex" checked /> <span id="srcCodexLabel">Codex</span></label>
+  </div>
   <div class="dropdown">
     <button class="btn" id="projBtn">Projects</button>
     <div class="menu" id="projMenu" hidden></div>
@@ -201,6 +210,7 @@ const state = {
   weekStart: startOfWeek(new Date()),
   gapMin: store.get("gap", 15),
   includeSubs: store.get("subs", true),
+  sources: store.get("sources", { claude: true, codex: true }),
   hidden: new Set(store.get("hidden", [])),
   selected: null,
   blocks: [],
@@ -262,7 +272,7 @@ async function load(force) {
 }
 
 function visibleSessions() {
-  return state.sessions.filter((s) => !state.hidden.has(s.project));
+  return state.sessions.filter((s) => state.sources[s.source] !== false && !state.hidden.has(s.project));
 }
 
 /** Assigns overlapping blocks to side-by-side lanes, Google-Calendar style. */
@@ -384,12 +394,12 @@ function render() {
       const left = b.lane * width;
       const dur = b.end - b.start;
       const tiny = b.height < 26;
-      const id = b.session.id + ":" + b.start;
+      const id = b.session.source + ":" + b.session.id + ":" + b.start;
       const selected = state.selected === id ? " selected" : "";
-      return `<div class="block${tiny ? " tiny" : ""}${selected}" data-id="${id}"
+      return `<div class="block ${b.session.source}${tiny ? " tiny" : ""}${selected}" data-id="${id}"
           style="top:${b.top}px;height:${b.height - 1}px;left:calc(${left}% + 2px);width:calc(${width}% - 5px);
-                 background:${c.bg};border-color:rgba(255,255,255,.08);border-left-color:${c.border};color:${c.text}"
-          title="${escapeHtml(b.session.title)}&#10;${b.session.project}&#10;${fmtClock(b.start)} – ${fmtClock(b.end)} (${fmtDur(dur)})">
+                 background-color:${c.bg};border-color:rgba(255,255,255,.08);border-left-color:${c.border};color:${c.text}"
+          title="${escapeHtml(b.session.title)}&#10;${b.session.project} · ${b.session.source === "codex" ? "Codex" : "Claude Code"}&#10;${fmtClock(b.start)} – ${fmtClock(b.end)} (${fmtDur(dur)})">
           <div class="t">${escapeHtml(b.session.title)}</div>
           <div class="s">${fmtClock(b.start)} · ${fmtDur(dur)}</div>
         </div>`;
@@ -401,7 +411,7 @@ function render() {
 
   // Stats
   const total = dayTotals.reduce((a, b) => a + b, 0);
-  const sessionIds = new Set(weekBlocks.map((b) => b.session.id));
+  const sessionIds = new Set(weekBlocks.map((b) => b.session.source + ":" + b.session.id));
   const longest = weekBlocks.reduce((best, b) => (b.end - b.start > (best ? best.end - best.start : -1) ? b : best), null);
   const busiestIdx = dayTotals.indexOf(Math.max(...dayTotals));
   document.getElementById("stTotal").textContent = total ? fmtDur(total) : "0h";
@@ -413,8 +423,15 @@ function render() {
     total ? days[busiestIdx].toLocaleDateString([], { weekday: "short" }) + " " + fmtDur(dayTotals[busiestIdx]) : "—";
   document.getElementById("stScan").textContent = "indexed " + fmtClock(state.scannedAt);
 
+  const inWeek = (source) =>
+    new Set(state.sessions
+      .filter((s) => s.source === source && s.end >= weekStart && s.start <= weekEnd && !state.hidden.has(s.project))
+      .map((s) => s.id)).size;
+  document.getElementById("srcClaudeLabel").textContent = "Claude " + inWeek("claude");
+  document.getElementById("srcCodexLabel").textContent = "Codex " + inWeek("codex");
+
   if (state.selected) {
-    const still = weekBlocks.find((b) => b.session.id + ":" + b.start === state.selected);
+    const still = weekBlocks.find((b) => b.session.source + ":" + b.session.id + ":" + b.start === state.selected);
     if (still) showDetail(still);
     else hideDetail();
   }
@@ -437,6 +454,7 @@ function showDetail(block) {
     <button class="icon-btn close" id="closeDetail">×</button>
     <h2>${escapeHtml(s.title)}</h2>
     <div class="sub">${escapeHtml(s.project)}${s.branch ? " · " + escapeHtml(s.branch) : ""}</div>
+    <dl class="kv"><dt>Source</dt><dd>${s.source === "codex" ? "Codex" : "Claude Code"}${s.client ? " · " + escapeHtml(s.client) : ""}</dd></dl>
     <dl class="kv">
       <dt>This block</dt><dd>${fmtClock(block.start)} – ${fmtClock(block.end)} · ${fmtDur(block.end - block.start)}</dd>
       <dt>Session span</dt><dd>${new Date(s.start).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} → ${new Date(s.end).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</dd>
@@ -449,7 +467,9 @@ function showDetail(block) {
       ${s.costUSD !== null ? `<dt>Recorded cost</dt><dd>$${s.costUSD.toFixed(2)}</dd>` : ""}
     </dl>
     <div class="sub">Resume</div>
-    <code>cd ${escapeHtml(s.cwd ?? "~")} &amp;&amp; claude --resume ${s.id}</code>
+    <code>cd ${escapeHtml(s.cwd ?? "~")} &amp;&amp; ${s.source === "codex" ? "codex resume " + s.id : "claude --resume " + s.id}</code>
+    <div class="sub" style="margin-top:10px">Transcript</div>
+    <code>${escapeHtml(s.file)}</code>
     <div class="sub" style="margin-top:14px">Blocks in this session</div>
     <div class="segments">
       ${all.map(([a, b]) => `<div><span>${new Date(a).toLocaleDateString([], { month: "short", day: "numeric" })} ${fmtClock(a)}</span><span>${fmtDur(b - a)}</span></div>`).join("")}
@@ -465,7 +485,10 @@ function hideDetail() {
 
 function renderProjectMenu() {
   const counts = new Map();
-  for (const s of state.sessions) counts.set(s.project, (counts.get(s.project) ?? 0) + 1);
+  for (const s of state.sessions) {
+    if (state.sources[s.source] === false) continue;
+    counts.set(s.project, (counts.get(s.project) ?? 0) + 1);
+  }
   const rows = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   const menu = document.getElementById("projMenu");
   menu.innerHTML =
@@ -527,6 +550,17 @@ const subs = document.getElementById("subs");
 subs.checked = state.includeSubs;
 subs.onchange = () => { state.includeSubs = subs.checked; store.set("subs", state.includeSubs); render(); };
 
+for (const [key, id] of [["claude", "srcClaude"], ["codex", "srcCodex"]]) {
+  const box = document.getElementById(id);
+  box.checked = state.sources[key] !== false;
+  box.onchange = () => {
+    state.sources = { ...state.sources, [key]: box.checked };
+    store.set("sources", state.sources);
+    renderProjectMenu();
+    render();
+  };
+}
+
 document.getElementById("projBtn").onclick = (e) => {
   e.stopPropagation();
   const menu = document.getElementById("projMenu");
@@ -541,7 +575,7 @@ document.getElementById("grid").addEventListener("click", (e) => {
   const el = e.target.closest(".block");
   if (!el) return;
   state.selected = el.dataset.id;
-  const block = state.blocks.find((b) => b.session.id + ":" + b.start === state.selected);
+  const block = state.blocks.find((b) => b.session.source + ":" + b.session.id + ":" + b.start === state.selected);
   document.querySelectorAll(".block.selected").forEach((n) => n.classList.remove("selected"));
   el.classList.add("selected");
   if (block) showDetail(block);
