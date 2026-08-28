@@ -8,7 +8,7 @@ export const Intro: React.FC = () => {
   const { fps } = useVideoConfig();
   const enter = spring({ frame, fps, config: { damping: 200, mass: 0.7 } });
   const tagline = interpolate(frame, [10, 26], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const exit = interpolate(frame, [40, 52], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const exit = interpolate(frame, [34, 46], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   return (
     <AbsoluteFill
@@ -16,7 +16,7 @@ export const Intro: React.FC = () => {
         justifyContent: "center",
         alignItems: "center",
         opacity: exit,
-        transform: `scale(${interpolate(frame, [40, 52], [1, 1.06], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })})`,
+        transform: `scale(${interpolate(frame, [34, 46], [1, 1.06], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })})`,
       }}
     >
       <div style={{ transform: `scale(${0.94 + enter * 0.06})`, opacity: enter }}>

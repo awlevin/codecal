@@ -3,12 +3,12 @@ import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } fr
 import { theme } from "../theme";
 
 const COMMAND = "npx github:awlevin/codecal";
-const TYPE_START = 12;
-const TYPE_END = 52;
+const TYPE_START = 8;
+const TYPE_END = 44;
 
 const OUTPUT: Array<{ text: string; at: number; color: string }> = [
-  { text: "indexed 1303 codex, 176 claude sessions in 10.4s", at: 74, color: theme.muted },
-  { text: "codecal → http://localhost:4317", at: 90, color: "#7ee2b8" },
+  { text: "indexed 1303 codex, 176 claude sessions in 10.4s", at: 60, color: theme.muted },
+  { text: "codecal → http://localhost:4317", at: 74, color: "#7ee2b8" },
 ];
 
 export const Terminal: React.FC = () => {
@@ -22,7 +22,7 @@ export const Terminal: React.FC = () => {
     }),
   );
   const caretOn = frame < TYPE_END ? true : Math.floor(frame / 15) % 2 === 0;
-  const exit = interpolate(frame, [126, 142], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const exit = interpolate(frame, [110, 126], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", opacity: exit }}>
@@ -85,7 +85,7 @@ export const Terminal: React.FC = () => {
           fontFamily: theme.sans,
           fontSize: 25,
           color: theme.muted,
-          opacity: interpolate(frame, [96, 110], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
+          opacity: interpolate(frame, [82, 94], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
         }}
       >
         No install. No config. No account.

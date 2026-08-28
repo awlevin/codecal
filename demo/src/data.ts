@@ -151,3 +151,16 @@ export function peakParallelAt(gapMin: number): number {
   }
   return peak;
 }
+
+/**
+ * A session nobody was watching: one prompt, then a loop that kept firing
+ * every twenty minutes for two days. Kept out of SESSIONS so it does not
+ * distort the week's totals until the scene that is about it.
+ */
+export const RUNAWAY: DemoSession[] = [3, 4].map((day) => {
+  const intervals: Interval[] = [];
+  for (let minute = 9 * 60 + 4; minute < 18 * 60; minute += 21) {
+    intervals.push([minute, minute + 4]);
+  }
+  return { title: "nightly digest loop", project: 2, day, intervals };
+});

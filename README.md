@@ -47,11 +47,24 @@ You have a rough feeling about how you work with agents. Your transcripts have t
 
 And the ordinary questions too:
 
+- What ran all night while I was asleep, and what did it cost?
 - When did I really start, and when did I really stop?
 - Which repo ate Tuesday?
 - What was that session on Thursday afternoon, and how do I resume it?
 
 Everything is read locally. Nothing is uploaded, and no transcript content leaves the machine.
+
+## Where the tokens went
+
+<p align="center">
+  <img src="assets/waste.png" width="900" alt="A runaway session highlighted on the calendar, with its models and token totals called out in the detail panel" />
+</p>
+
+An agent left running does not look like anything. It makes no noise, it opens no window, and the bill arrives at the end of the week.
+
+On the calendar it is unmistakable: a stripe of identical little blocks marching down two or three days straight, through hours you were asleep. Click one and the panel names the damage, since it carries the models used, the assistant turn count, and the token totals for that session alone.
+
+This is how I found a loop that ran unattended for two nights and quietly ate a week of credits. Nothing else I had would have shown me that, because every dashboard reports the total and none of them report the shape.
 
 ## The idle gap
 
@@ -80,6 +93,7 @@ Low values show individual turns. High values show "I had an agent open all even
 | **Both agents** | Claude Code solid, Codex striped, header toggles to show either alone |
 | **A scoreboard** | Wall clock, session time, the multiplier between them, peak parallel agents, longest block, busiest day |
 | **Session detail** | Span, time to return (median and longest), prompts, assistant turns, models, tokens, every block in the session, the transcript path, and a ready-to-paste resume command |
+| **Spot the waste** | Runaway loops and sessions left running read as a stripe of identical blocks; the panel gives the models and tokens they burned |
 | **Hide the noise** | A session that hung on an unanswered prompt for three days can be hidden in one click, and brought back with a toggle |
 | **Live refresh** | The index rebuilds every 30 seconds, so a session you start while the page is open appears on its own |
 

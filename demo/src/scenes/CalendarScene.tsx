@@ -12,13 +12,13 @@ const HEADLINE = (
 );
 
 const CAPTIONS: Array<{ text: string; from: number; to: number }> = [
-  { text: "You took five minutes to reply. The session never stopped.", from: 92, to: 180 },
-  { text: "You set how long a pause has to be to count as a break.", from: 196, to: 280 },
+  { text: "You took five minutes to reply. The session never stopped.", from: 92, to: 172 },
+  { text: "You set how long a pause has to be to count as a break.", from: 188, to: 262 },
 ];
 
 /** The drag: hold at 15, pull right to 60, then back down to 6. */
 const gapAt = (frame: number) =>
-  interpolate(frame, [80, 166, 190, 246], [15, 60, 60, 6], {
+  interpolate(frame, [80, 160, 178, 232], [15, 60, 60, 6], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.inOut(Easing.cubic),
@@ -30,7 +30,7 @@ export const CalendarScene: React.FC = () => {
   const enter = spring({ frame: frame - 18, fps, config: { damping: 200, mass: 0.6 } });
   const gap = gapAt(frame);
   const reveal = interpolate(frame, [22, 58], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const exit = interpolate(frame, [292, 306], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const exit = interpolate(frame, [272, 286], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const headline = interpolate(frame, [0, 14, 86, 98], [0, 1, 1, 0.32], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -43,7 +43,7 @@ export const CalendarScene: React.FC = () => {
   });
   const cursorX = interpolate(approach, [0, 1], [SLIDER.x + 470, knobX(gap)]);
   const cursorY = interpolate(approach, [0, 1], [CARD.y + SHIFT + 430, CARD.y + SHIFT + HEADER_H / 2]);
-  const pressed = interpolate(frame, [72, 80, 250, 258], [0, 1, 1, 0], {
+  const pressed = interpolate(frame, [72, 80, 236, 244], [0, 1, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });

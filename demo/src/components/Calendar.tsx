@@ -1,6 +1,7 @@
 import React from "react";
 import { interpolate } from "remotion";
 import { SESSIONS, blockCountAt, activeMinutesAt, groupsAt, wallClockAt, peakParallelAt } from "../data";
+import type { DemoSession } from "../data";
 import { projectColor, theme } from "../theme";
 import { Wordmark } from "./Wordmark";
 
@@ -27,6 +28,7 @@ export const knobX = (gapMin: number) =>
 type Positioned = {
   key: string;
   title: string;
+  faded: boolean;
   project: number;
   top: number;
   height: number;
@@ -72,12 +74,17 @@ const fmtHours = (minutes: number) => {
   return m ? `${h}h ${m}m` : `${h}h`;
 };
 
-export const Calendar: React.FC<{ gapMin: number; reveal: number }> = ({ gapMin, reveal }) => {
+export const Calendar: React.FC<{
+  gapMin: number;
+  reveal: number;
+  extra?: DemoSession[];
+  highlight?: string;
+}> = ({ gapMin, reveal, extra = [], highlight }) => {
   const gridTop = CARD.y + HEADER_H + STATS_H + DAYHEAD_H;
   const colW = (CARD.w - GUTTER) / 7;
 
   const perDay: Positioned[][] = DAYS.map(() => []);
-  SESSIONS.forEach((session, sessionIndex) => {
+  [...SESSIONS, ...extra].forEach((session, sessionIndex) => {
     groupsAt(session.intervals, gapMin).forEach((group, groupIndex) => {
       const top = ((group.start - FIRST_HOUR * 60) / 60) * HOUR_PX;
       const height = Math.max(9, ((group.end - group.start) / 60) * HOUR_PX);
@@ -90,6 +97,7 @@ export const Calendar: React.FC<{ gapMin: number; reveal: number }> = ({ gapMin,
         lane: 0,
         lanes: 1,
         span: 1,
+        faded: highlight !== undefined && session.title !== highlight,
         minutes: group.end - group.start,
       });
     });
@@ -281,12 +289,13 @@ export const Calendar: React.FC<{ gapMin: number; reveal: number }> = ({ gapMin,
                     borderRadius: 7,
                     background: color.fill,
                     borderLeft: `3px solid ${color.edge}`,
+                    boxShadow: highlight && !block.faded ? `0 0 0 2px ${color.edge}, 0 8px 26px rgba(0,0,0,.55)` : undefined,
                     color: color.text,
                     padding: block.height > 26 ? "4px 8px" : "1px 8px",
                     fontSize: 13.5,
                     lineHeight: 1.25,
                     overflow: "hidden",
-                    opacity: appear,
+                    opacity: appear * (block.faded ? 0.22 : 1),
                     transform: `translateY(${(1 - appear) * 10}px)`,
                   }}
                 >
