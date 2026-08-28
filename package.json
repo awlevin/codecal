@@ -1,14 +1,14 @@
 {
-  "name": "claude-calendar",
+  "name": "codecal",
   "version": "1.0.0",
   "scripts": {
-    "start": "node bin/claude-calendar.mjs"
+    "start": "node bin/codecal.mjs"
   },
   "description": "A weekly calendar view of your local Claude Code and Codex sessions.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/awlevin/claude-calendar.git"
+    "url": "https://github.com/awlevin/codecal.git"
   },
   "keywords": [
     "claude-code",
@@ -19,7 +19,7 @@
   ],
   "type": "module",
   "bin": {
-    "claude-calendar": "bin/claude-calendar.mjs"
+    "codecal": "bin/codecal.mjs"
   },
   "engines": {
     "node": ">=18"

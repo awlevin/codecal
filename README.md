@@ -1,9 +1,9 @@
-# claude-calendar
+# codecal
 
 A weekly, hour-by-hour calendar of the coding-agent sessions you ran on this machine. Reads [Claude Code](https://claude.com/claude-code) transcripts and [Codex](https://developers.openai.com/codex) rollouts, and draws both on one grid.
 
 ```bash
-npx github:awlevin/claude-calendar
+npx github:awlevin/codecal
 ```
 
 That is the whole setup. It serves <http://localhost:4317> and opens it. No install, no dependencies, no config, no account. Node 18 or newer is the only requirement.
@@ -62,20 +62,20 @@ Low values show individual turns. High values show "I had an agent open all even
 ## Options
 
 ```bash
-npx github:awlevin/claude-calendar --port 5000   # serve somewhere else
-npx github:awlevin/claude-calendar --no-open     # do not open a browser
-npx github:awlevin/claude-calendar --no-codex    # Claude Code only
-npx github:awlevin/claude-calendar --no-claude   # Codex only
-npx github:awlevin/claude-calendar --no-cache    # force a full re-read
-npx github:awlevin/claude-calendar --help
+npx github:awlevin/codecal --port 5000   # serve somewhere else
+npx github:awlevin/codecal --no-open     # do not open a browser
+npx github:awlevin/codecal --no-codex    # Claude Code only
+npx github:awlevin/codecal --no-claude   # Codex only
+npx github:awlevin/codecal --no-cache    # force a full re-read
+npx github:awlevin/codecal --help
 ```
 
 Run it from a clone instead:
 
 ```bash
-git clone https://github.com/awlevin/claude-calendar.git
-cd claude-calendar
-node bin/claude-calendar.mjs
+git clone https://github.com/awlevin/codecal.git
+cd codecal
+node bin/codecal.mjs
 ```
 
 ## How it reads your transcripts
@@ -92,7 +92,7 @@ node bin/claude-calendar.mjs
 
 Points and spans are fused into intervals at index time, then merged into blocks in the browser at whatever idle gap you pick.
 
-Bulk parsing is skipped for the largest records, which carry bytes rather than metadata, and every file is cached in `~/.cache/claude-calendar/` by size and mtime. A cold pass over ~2.5 GB of transcripts takes about ten seconds; after that a re-index is well under a second, since only changed files are re-read.
+Bulk parsing is skipped for the largest records, which carry bytes rather than metadata, and every file is cached in `~/.cache/codecal/` by size and mtime. A cold pass over ~2.5 GB of transcripts takes about ten seconds; after that a re-index is well under a second, since only changed files are re-read.
 
 ## What it cannot see
 

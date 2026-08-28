@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * claude-calendar — a weekly calendar view of local coding-agent sessions.
+ * codecal — a weekly calendar view of local coding-agent sessions.
  *
  * Reads the transcripts Claude Code writes to ~/.claude/projects and the
  * rollouts Codex writes to ~/.codex/sessions, turns each session's timestamped
@@ -18,7 +18,7 @@ const HOME = homedir();
 const CLAUDE_DIR = join(HOME, ".claude", "projects");
 const CODEX_DIRS = [join(HOME, ".codex", "sessions"), join(HOME, ".codex", "archived_sessions")];
 const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "public");
-const CACHE_FILE = join(HOME, ".cache", "claude-calendar", "index-v1.json");
+const CACHE_FILE = join(HOME, ".cache", "codecal", "index-v1.json");
 
 /** Intervals closer together than this are fused during indexing. */
 const INDEX_FUSE_MS = 20_000;
@@ -35,9 +35,9 @@ function option(name, fallback) {
 }
 
 if (flag("--help") || flag("-h")) {
-  console.log(`claude-calendar — a weekly calendar of your Claude Code and Codex sessions
+  console.log(`codecal — a weekly calendar of your Claude Code and Codex sessions
 
-Usage: claude-calendar [options]
+Usage: codecal [options]
 
   --port <n>     Port to serve on (default 4317, or $PORT)
   --no-open      Do not open a browser
@@ -665,7 +665,7 @@ server.listen(port, () => {
     console.log("no Claude Code or Codex transcripts found — the calendar will be empty");
   }
   getIndex(true);
-  console.log(`claude-calendar → ${url}`);
+  console.log(`codecal → ${url}`);
   if (!flag("--no-open")) {
     openBrowser(url);
   }
